@@ -1,20 +1,19 @@
-from src.power import power_function
-from src.constants import SAMPLE_CONSTANT
+from src.core.exceptions import TaskError
+from src.core.task import Task
 
 
 def main() -> None:
-    """
-    Обязательнная составляющая программ, которые сдаются. Является точкой входа в приложение
-    :return: Данная функция ничего не возвращает
-    """
+    try:
+        task = Task(
+            id=123,
+            description='a12',
+            priority=5
+        )
+        task.status = 'in process'
+        print(task.status)
 
-    target, degree = map(int, input("Введите два числа разделенные пробелом: ").split(" "))
+    except TaskError as e:
+        print(f'Raised exception: {e}')
 
-    result = power_function(target=target, power=degree)
-
-    print(result)
-
-    print(SAMPLE_CONSTANT)
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
