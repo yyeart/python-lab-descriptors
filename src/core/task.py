@@ -1,17 +1,22 @@
 from src.core.exceptions import StateError
-from src.descriptors.numberic import IntRange
-from src.descriptors.other import Const, CreatedAt
+from src.core.constants import ALLOWED_STATUSES, ALLOWED_STATUS_TRANSITIONS
+from src.descriptors.numeric import IntRange
+from src.descriptors.other import Const, CreatedAt, FullInfoDescriptor
 from src.descriptors.text import NotEmptyString
 from src.logger.setup_logger import logger
 
 
 class Task:
+    """
+    Структура данных задачи
+    """
+    __slots__ = ('_id', '_description', '_priority', '_created_at', '_status', '__dict__')
+
     id = Const()
     description = NotEmptyString()
     priority = IntRange(1, 10)
     created_at = CreatedAt()
-
-    ALLOWED_STATUSES = ('Planned', 'In_progress', 'Done', 'Canceled')
+    full_info = FullInfoDescriptor()
 
     def __init__(self, id: int, description: str, priority: int = 1):
         self.id = id
@@ -24,11 +29,20 @@ class Task:
         return self._status
     
     @status.setter
-    def status(self, value: str):
-        if value not in self.ALLOWED_STATUSES:
-            raise ValueError(f'{value} is an unknown status.'
-                             f'Allowed statuses: {self.ALLOWED_STATUSES}')
-        if self._status == 'Done':
-            logger.error('attempt to interact with finished task')
-            raise StateError('task is already done')
-        self._status = value
+    def status(self, new_status: str):
+        logger.info('Attempt to set a new status')
+        if new_status not in ALLOWED_STATUSES:
+            logger.error(f'Attempt failed: forbidden status')
+            raise ValueError(f'{new_status} is an unknown status.'
+                             f'Allowed statuses: {ALLOWED_STATUSES}')
+        if new_status not in ALLOWED_STATUS_TRANSITIONS[self._status]:
+            logger.error(f'Attempt failed: forbidden transition')
+            raise StateError(
+                f'transition from {self._status} to {new_status} is not allowed'
+            )
+        logger.info(f'Task {self.id}: status changed from {self.status} to {new_status}')
+        self._status = new_status
+
+    @property
+    def is_executable(self) -> bool:
+        return self.status == 'Planned' and self.priority > 0 and len(self.description) > 0
